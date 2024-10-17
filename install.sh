@@ -392,11 +392,11 @@ if [ "${use_luks}" = '1' ]; then
 fi
 
 ## Continue kernel hardening
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/modprobe.d/blacklist.conf /mnt/etc/modprobe.d/blacklist.conf
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/sysctl.d/99-workstation.conf /mnt/etc/sysctl.d/99-workstation.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/modprobe.d/blacklist.conf /mnt/etc/modprobe.d/blacklist.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/sysctl.d/99-workstation.conf /mnt/etc/sysctl.d/99-workstation.conf
 
 ## Setup NTS
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/chrony.conf /mnt/etc/chrony.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/chrony.conf /mnt/etc/chrony.conf
 
 ## Remove nullok from system-auth
 sed -i 's/nullok//g' /mnt/etc/pam.d/system-auth
@@ -404,35 +404,35 @@ sed -i 's/nullok//g' /mnt/etc/pam.d/system-auth
 ## Harden SSH
 ## Arch annoyingly does not split openssh-server out so even desktop Arch will have the daemon.
 
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/ssh/ssh_config.d/10-custom.conf /mnt/etc/ssh/ssh_config.d/10-custom.conf
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/ssh/sshd_config.d/10-custom.conf mnt/etc/ssh/sshd_config.d/10-custom.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/ssh/ssh_config.d/10-custom.conf /mnt/etc/ssh/ssh_config.d/10-custom.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/ssh/sshd_config.d/10-custom.conf mnt/etc/ssh/sshd_config.d/10-custom.conf
 sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /mnt/etc/ssh/sshd_config.d/10-custom.conf
 mkdir -p /mnt/etc/systemd/system/sshd.service.d/
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/system/sshd.service.d/override.conf mnt/etc/systemd/system/sshd.service.d/override.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/systemd/system/sshd.service.d/override.conf mnt/etc/systemd/system/sshd.service.d/override.conf
 
 ## Disable coredump
 mkdir -p /mnt/etc/security/limits.d/
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/security/limits.d/10-gamemode.conf /mnt/etc/security/limits.d/30-disable-coredump.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/security/limits.d/10-gamemode.conf /mnt/etc/security/limits.d/30-disable-coredump.conf
 mkdir -p /mnt/etc/systemd/coredump.conf.d
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/coredump.conf.d/disable.conf /mnt/etc/systemd/coredump.conf.d/disable.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/systemd/coredump.conf.d/disable.conf /mnt/etc/systemd/coredump.conf.d/disable.conf
 
 # Setup dconf
 # This doesn't actually take effect atm - need to investigate
 
 mkdir -p /mnt/etc/dconf/db/local.d/locks
 
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/locks/automount-disablecp/mnt/etc/dconf/db/local.d/locks/automount-disable
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/locks/privacycp/mnt/etc/dconf/db/local.d/locks/privacy
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/locks/automount-disablecp/mnt/etc/dconf/db/local.d/locks/automount-disable
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/locks/privacycp/mnt/etc/dconf/db/local.d/locks/privacy
 
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/adw-gtk3-dark /mnt/etc/dconf/db/local.d/adw-gtk3-dark
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/automount-disable /mnt/etc/dconf/db/local.d/automount-disable
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/button-layout /mnt/etc/dconf/db/local.d/button-layout
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/prefer-dark /mnt/etc/dconf/db/local.d/prefer-dark
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/privacy /mnt/etc/dconf/db/local.d/privacy
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/touchpad /mnt/etc/dconf/db/local.d/touchpad
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/adw-gtk3-dark /mnt/etc/dconf/db/local.d/adw-gtk3-dark
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/automount-disable /mnt/etc/dconf/db/local.d/automount-disable
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/button-layout /mnt/etc/dconf/db/local.d/button-layout
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/prefer-dark /mnt/etc/dconf/db/local.d/prefer-dark
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/privacy /mnt/etc/dconf/db/local.d/privacy
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/dconf/db/local.d/touchpad /mnt/etc/dconf/db/local.d/touchpad
 
 ## ZRAM configuration
-unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/zram-generator.conf /mnt/etc/systemd/zram-generator.conf
+unpriv cp /root/Arch-Linux-BTRFS-CWC/etc/systemd/zram-generator.conf /mnt/etc/systemd/zram-generator.conf
 
 ## Setup Networking
 if [ "${network_daemon}" = 'systemd-networkd' ]; then
