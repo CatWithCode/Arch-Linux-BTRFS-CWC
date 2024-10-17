@@ -29,22 +29,6 @@ installation_date=$(date "+%Y-%m-%d %H:%M:%S")
 # Check if this is a VM
 virtualization=$(systemd-detect-virt)
 
-install_mode_selector() {
-    output 'Is this a desktop or server installation?'
-    output '1) Desktop'
-    output '2) Server'
-    output 'Insert the number of your selection:'
-    read -r choice
-    case $choice in
-        1 ) install_mode=desktop
-            ;;
-        2 ) install_mode=server
-            ;;
-        * ) output 'You did not enter a valid selection.'
-            install_mode_selector
-    esac
-}
-
 luks_prompt(){
     if [ "${virtualization}" != 'none' ]; then
         output "Virtual machine detected. Do you want to set up LUKS?"
@@ -133,37 +117,11 @@ user_password_prompt () {
 }
 
 hostname_prompt (){
-    if [ "${install_mode}" = 'server' ]; then
-        output 'Enter your hostname:'
-        read -r hostname
-
-        if [ -z "${hostname}" ]; then
-            output 'You need to enter a hostname.'
-            hostname_prompt
-        fi
-    else
-        hostname='localhost'
-    fi
+    hostname='localhost'
 }
 
 network_daemon_prompt(){
-    if [ "${install_mode}" = 'server' ]; then
-        output 'Which network daemon do you want to use'
-        output '1) networkmanager'
-        output '2) systemd-networkd'
-        output 'Insert the number of your selection:'
-        read -r choice
-        case $choice in
-            1 ) network_daemon='networkmanager'
-                ;;
-            2 ) network_daemon='systemd-networkd'
-                ;;
-            * ) output 'You did not enter a valid selection.'
-            install_mode_selector
-        esac
-    else
-        network_daemon='networkmanager'
-    fi
+    network_daemon='networkmanager'
 }
 
 # Set hardcoded variables (temporary, these will be replaced by future prompts)
@@ -173,8 +131,7 @@ kblayout=us
 # Cleaning the TTY.
 clear
 
-# Initial prompts
-install_mode_selector 
+# Initial prompts 
 luks_prompt
 luks_password_prompt
 disk_prompt
@@ -248,10 +205,8 @@ btrfs su cr /mnt/@/var_tmp
 btrfs su cr /mnt/@/var_spool
 btrfs su cr /mnt/@/var_lib_libvirt_images
 btrfs su cr /mnt/@/var_lib_machines
-if [ "${install_mode}" = 'desktop' ]; then
-    btrfs su cr /mnt/@/var_lib_gdm
-    btrfs su cr /mnt/@/var_lib_AccountsService
-fi
+btrfs su cr /mnt/@/var_lib_gdm
+btrfs su cr /mnt/@/var_lib_AccountsService
 
 if [ "${use_luks}" = '1' ]; then
     btrfs su cr /mnt/@/cryptkey
@@ -269,10 +224,8 @@ chattr +C /mnt/@/var_tmp
 chattr +C /mnt/@/var_spool
 chattr +C /mnt/@/var_lib_libvirt_images
 chattr +C /mnt/@/var_lib_machines
-if [ "${install_mode}" = 'desktop' ]; then
-    chattr +C /mnt/@/var_lib_gdm
-    chattr +C /mnt/@/var_lib_AccountsService
-fi
+chattr +C /mnt/@/var_lib_gdm
+chattr +C /mnt/@/var_lib_AccountsService
 
 if [ "${use_luks}" = '1' ]; then
     chattr +C /mnt/@/cryptkey
@@ -297,9 +250,7 @@ umount /mnt
 output 'Mounting the newly created subvolumes.'
 mount -o ssd,noatime,compress=zstd "${BTRFS}" /mnt
 mkdir -p /mnt/{boot,root,home,.snapshots,srv,tmp,var/log,var/crash,var/cache,var/tmp,var/spool,var/lib/libvirt/images,var/lib/machines}
-if [ "${install_mode}" = 'desktop' ]; then
-    mkdir -p /mnt/{var/lib/gdm,var/lib/AccountsService}
-fi
+mkdir -p /mnt/{var/lib/gdm,var/lib/AccountsService}
 
 if [ "${use_luks}" = '1' ]; then
     mkdir -p /mnt/cryptkey
@@ -319,10 +270,8 @@ mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_li
 mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_lib_machines "${BTRFS}" /mnt/var/lib/machines
 
 # GNOME requires /var/lib/gdm and /var/lib/AccountsService to be writeable when booting into a readonly snapshot. Thus we sadly have to split them.
-if [ "${install_mode}" = 'desktop' ]; then
-    mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_lib_gdm $BTRFS /mnt/var/lib/gdm
-    mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_lib_AccountsService $BTRFS /mnt/var/lib/AccountsService
-fi
+mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_lib_gdm $BTRFS /mnt/var/lib/gdm
+mount -o ssd,noatime,compress=zstd,nodatacow,nodev,nosuid,noexec,subvol=@/var_lib_AccountsService $BTRFS /mnt/var/lib/AccountsService
 
 ### The encryption is splitted as we do not want to include it in the backup with snap-pac.
 if [ "${use_luks}" = '1' ]; then
@@ -355,20 +304,14 @@ if [ "${network_daemon}" = 'networkmanager' ]; then
     pacstrap /mnt networkmanager
 fi
 
-if [ "${install_mode}" = 'desktop' ]; then
-    pacstrap /mnt nautilus gdm gnome-console gnome-control-center flatpak pipewire-alsa pipewire-pulse pipewire-jack
-elif [ "${install_mode}" = 'server' ]; then
-    pacstrap /mnt openssh unbound
-fi
+pacstrap /mnt nautilus gdm gnome-console gnome-control-center flatpak pipewire-alsa pipewire-pulse pipewire-jack
 
 if [ "${virtualization}" = 'none' ]; then
     pacstrap /mnt fwupd
     echo 'UriSchemes=file;https' | sudo tee -a /mnt/etc/fwupd/fwupd.conf
 elif [ "${virtualization}" = 'kvm' ]; then
     pacstrap /mnt qemu-guest-agent
-    if [ "${install_mode}" = 'desktop' ]; then
-        pacstrap /mnt spice-vdagent
-    fi
+    pacstrap /mnt spice-vdagent
 fi
 
 ## Install snap-pac list otherwise we will have problems
@@ -449,17 +392,11 @@ if [ "${use_luks}" = '1' ]; then
 fi
 
 ## Continue kernel hardening
-unpriv curl -s https://raw.githubusercontent.com/secureblue/secureblue/live/files/system/etc/modprobe.d/blacklist.conf | tee /mnt/etc/modprobe.d/blacklist.conf > /dev/null
-if [ "${install_mode}" = 'server' ]; then
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/sysctl.d/99-server.conf | tee /mnt/etc/sysctl.d/99-server.conf > /dev/null
-else 
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/sysctl.d/99-workstation.conf | tee /mnt/etc/sysctl.d/99-workstation.conf > /dev/null
-fi
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/modprobe.d/blacklist.conf /mnt/etc/modprobe.d/blacklist.conf
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/sysctl.d/99-workstation.conf /mnt/etc/sysctl.d/99-workstation.conf
 
 ## Setup NTS
-unpriv curl -s https://raw.githubusercontent.com/GrapheneOS/infrastructure/main/chrony.conf | tee /mnt/etc/chrony.conf > /dev/null
-mkdir -p /mnt/etc/sysconfig
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/sysconfig/chronyd | tee /mnt/etc/sysconfig/chronyd > /dev/null
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/chrony.conf /mnt/etc/chrony.conf
 
 ## Remove nullok from system-auth
 sed -i 's/nullok//g' /mnt/etc/pam.d/system-auth
@@ -467,63 +404,37 @@ sed -i 's/nullok//g' /mnt/etc/pam.d/system-auth
 ## Harden SSH
 ## Arch annoyingly does not split openssh-server out so even desktop Arch will have the daemon.
 
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/ssh/ssh_config.d/10-custom.conf | tee /mnt/etc/ssh/ssh_config.d/10-custom.conf > /dev/null
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/ssh/sshd_config.d/10-custom.conf | tee /mnt/etc/ssh/sshd_config.d/10-custom.conf > /dev/null
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/ssh/ssh_config.d/10-custom.conf /mnt/etc/ssh/ssh_config.d/10-custom.conf
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/ssh/sshd_config.d/10-custom.conf mnt/etc/ssh/sshd_config.d/10-custom.conf
 sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /mnt/etc/ssh/sshd_config.d/10-custom.conf
 mkdir -p /mnt/etc/systemd/system/sshd.service.d/
-unpriv curl -s https://raw.githubusercontent.com/GrapheneOS/infrastructure/main/systemd/system/sshd.service.d/override.conf | tee /mnt/etc/systemd/system/sshd.service.d/override.conf > /dev/null
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/system/sshd.service.d/override.conf mnt/etc/systemd/system/sshd.service.d/override.conf
 
 ## Disable coredump
 mkdir -p /mnt/etc/security/limits.d/
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/security/limits.d/30-disable-coredump.conf | tee /mnt/etc/security/limits.d/30-disable-coredump.conf > /dev/null
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/security/limits.d/10-gamemode.conf /mnt/etc/security/limits.d/30-disable-coredump.conf
 mkdir -p /mnt/etc/systemd/coredump.conf.d
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/systemd/coredump.conf.d/disable.conf | tee /mnt/etc/systemd/coredump.conf.d/disable.conf > /dev/null
-
-# Disable XWayland
-if [ "${install_mode}" = 'desktop' ]; then
-    mkdir -p /mnt/etc/systemd/user/org.gnome.Shell@wayland.service.d
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/systemd/user/org.gnome.Shell%40wayland.service.d/override.conf | tee /mnt/etc/systemd/user/org.gnome.Shell@wayland.service.d/override.conf > /dev/null
-fi
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/coredump.conf.d/disable.conf /mnt/etc/systemd/coredump.conf.d/disable.conf
 
 # Setup dconf
+# This doesn't actually take effect atm - need to investigate
 
-if [ "${install_mode}" = 'desktop' ]; then
-    # This doesn't actually take effect atm - need to investigate
+mkdir -p /mnt/etc/dconf/db/local.d/locks
 
-    mkdir -p /mnt/etc/dconf/db/local.d/locks
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/locks/automount-disablecp/mnt/etc/dconf/db/local.d/locks/automount-disable
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/locks/privacycp/mnt/etc/dconf/db/local.d/locks/privacy
 
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/locks/automount-disable | tee /mnt/etc/dconf/db/local.d/locks/automount-disable > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/locks/privacy | tee /mnt/etc/dconf/db/local.d/locks/privacy > /dev/null
-
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/adw-gtk3-dark | tee /mnt/etc/dconf/db/local.d/adw-gtk3-dark > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/automount-disable | tee /mnt/etc/dconf/db/local.d/automount-disable > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/button-layout | tee /mnt/etc/dconf/db/local.d/button-layout > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/prefer-dark | tee /mnt/etc/dconf/db/local.d/prefer-dark > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/privacy | tee /mnt/etc/dconf/db/local.d/privacy > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/dconf/db/local.d/touchpad | tee /mnt/etc/dconf/db/local.d/touchpad > /dev/null
-fi
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/adw-gtk3-dark /mnt/etc/dconf/db/local.d/adw-gtk3-dark
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/automount-disable /mnt/etc/dconf/db/local.d/automount-disable
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/button-layout /mnt/etc/dconf/db/local.d/button-layout
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/prefer-dark /mnt/etc/dconf/db/local.d/prefer-dark
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/privacy /mnt/etc/dconf/db/local.d/privacy
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/dconf/db/local.d/touchpad /mnt/etc/dconf/db/local.d/touchpad
 
 ## ZRAM configuration
-unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/systemd/zram-generator.conf | tee /mnt/etc/systemd/zram-generator.conf > /dev/null
-
-## Setup unbound
-
-if [ "${install_mode}" = 'server' ]; then
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Arch-Setup-Script/main/etc/unbound/unbound.conf | tee /mnt/etc/unbound/unbound.conf > /dev/null
-fi
+unpriv cp /root/Arch-Linux-Btrfs-Install/etc/systemd/zram-generator.conf /mnt/etc/systemd/zram-generator.conf
 
 ## Setup Networking
-
-if [ "${install_mode}" = 'desktop' ]; then
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/NetworkManager/conf.d/00-macrandomize.conf | tee /mnt/etc/NetworkManager/conf.d/00-macrandomize.conf > /dev/null
-    unpriv curl -s https://raw.githubusercontent.com/TommyTran732/Linux-Setup-Scripts/main/etc/NetworkManager/conf.d/01-transient-hostname.conf | tee /mnt/etc/NetworkManager/conf.d/01-transient-hostname.conf > /dev/null
-fi
-
-if [ "${network_daemon}" = 'networkmanager' ]; then
-    mkdir -p /mnt/etc/systemd/system/NetworkManager.service.d/
-    unpriv curl -s https://gitlab.com/divested/brace/-/raw/master/brace/usr/lib/systemd/system/NetworkManager.service.d/99-brace.conf | tee /mnt/etc/systemd/system/NetworkManager.service.d/99-brace.conf > /dev/null
-fi
-
 if [ "${network_daemon}" = 'systemd-networkd' ]; then
     # arch-iso has working networking, booted does not.
     cp -ap /etc/systemd/network/20* /mnt/etc/systemd/network/ > /dev/null
@@ -560,10 +471,8 @@ arch-chroot /mnt /bin/bash -e <<EOF
     useradd -c "$fullname" -m "$username"
     usermod -aG wheel "$username"
 
-    if [ "${install_mode}" = 'desktop' ]; then
-        # Setting up dconf
-        dconf update
-    fi
+    # Setting up dconf
+    dconf update
 
     # Snapper configuration
     umount /.snapshots
@@ -599,17 +508,11 @@ else
     systemctl enable systemd-networkd --root=/mnt
 fi
 
-if [ "${install_mode}" = 'desktop' ]; then
-    systemctl enable gdm --root=/mnt
-    rm /mnt/etc/resolv.conf
-    ln -s /run/systemd/resolve/stub-resolv.conf /mnt/etc/resolv.conf
-    systemctl enable systemd-resolved --root=/mnt
-fi
+systemctl enable gdm --root=/mnt
+rm /mnt/etc/resolv.conf
+ln -s /run/systemd/resolve/stub-resolv.conf /mnt/etc/resolv.conf
+systemctl enable systemd-resolved --root=/mnt
 
-if [ "${install_mode}" = 'server' ]; then
-    systemctl enable sshd --root=/mnt
-    systemctl enable unbound --root=/mnt
-fi
 
 ## Set umask to 077.
 sed -i 's/^UMASK.*/UMASK 077/g' /mnt/etc/login.defs
