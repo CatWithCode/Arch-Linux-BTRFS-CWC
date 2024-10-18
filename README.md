@@ -104,7 +104,7 @@ https://gitlab.com/divested/brace
 7. `cd Arch-Linux-BTRFS-CWC`
 8. `chmod u+x ./install.sh`
 9. `./install.sh`
-10. I would recommend installing the normal Kernel / Zen Kernel. The hardened Kernel is nice, but breaks some things you would not expect.
+10. I would recommend installing the normal Kernel / Zen Kernel. The hardened Kernel is nice, but breaks some things you would not expect (Install the normal/Zen Kernel, reboot, uninstall the hardened Kernel, reboot).
 ---
 
 ### Snapper behavior
