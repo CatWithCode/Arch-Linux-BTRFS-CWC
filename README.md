@@ -139,10 +139,10 @@ I know a lot of people know this and it seems obvious to them, but fixing boot i
 5. Now you need to chroot into your install. To make this work do the following:  
     1. fdisk -l
     2. Find your drive (For example: "/dev/nvme0n1")
-    3. It will have two partitions: "/dev/nvme0n1p1" for "/boot" and "/dev/nvme0n1p2" and for the root in my case. (You will not be able to access any files at home because of the btrfs mappings).
+    3. It will have two partitions: "/dev/nvme0n1p1" for "/boot/EFI" or "/boot/efi" (FAT32 dose not care) and "/dev/nvme0n1p2" and for the root in my case. (You will not be able to access any files at home because of the btrfs mappings).
     4. Decryption your root with `cryptsetup luksOpen /dev/nvme0n1p2 openRoot`.
     5. Now you can mount it with `mount /dev/mapper/openRoot /mnt`.
-    6. Now mount boot inside of /boot `mount /dev/nvme0n1p1 /mnt/boot`.
+    6. Now mount boot inside of /boot/EFI or /boot/efi `mount /dev/nvme0n1p1 /mnt/boot/EFI` or `mount /dev/nvme0n1p1 /mnt/boot/efi`.
     7. `git clone https://github.com/CatWithCode/Arch-Linux-BTRFS-CWC/`
     7. `cd Arch-Linux-BTRFS-CWC`
     8. Move `update_grub_live.sh` to somewhere inside the mounted root. For this example `/mnt/usr/share/icons/`
@@ -150,6 +150,8 @@ I know a lot of people know this and it seems obvious to them, but fixing boot i
 6. Make the Script executable with `chmod +x /mnt/usr/share/icons/update_grub_live.sh`.
 7. Execute: `/mnt/usr/share/icons/update_grub_live.sh`.
 8. If done correctly, this should fix everything with GRUB and UEFI. One way to avoid this after some BIOS updates is to do the BIOS-Update in Linux and then run the Script before rebooting, but this is rarely supported.
+
+If grub is realy fucked it can somtimes work to change the update_grub_live.sh to point to boot and then to /boot/EFI or /boot/efi. BUT this must be fixed by the user later in the OS with a fresh grub install to /boot/EFI or /boot/efi! Else it causes confusion when fixing boot at some point later!
 
 ---
 
