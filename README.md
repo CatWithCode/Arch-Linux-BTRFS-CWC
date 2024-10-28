@@ -131,6 +131,8 @@ This type of attack can theoratically be solved by splitting /boot out to a sepe
 
 I know a lot of people know this and it seems obvious to them, but fixing boot is often very scary and I want to make sure I never get it wrong. This also happens with normal Arch installs, but this is written specifically for THIS type of installation:
 
+[FIXED: GitHub Issue - Grub and Snapper not working](https://github.com/TommyTran732/Arch-Setup-Script/issues/51)
+
 ### How to fix it?
 1. Download an Arch Linux ISO from [here](https://archlinux.org/download/)
 2. Flash the ISO onto an [USB Flash Drive](https://wiki.archlinux.org/index.php/USB_flash_installation_medium).
